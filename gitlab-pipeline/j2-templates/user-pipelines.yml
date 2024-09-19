@@ -1,0 +1,15 @@
+recover-dashboards:{{ name }}:
+  extends: .recover-dashboards
+  stage: gf-recovery
+  when: manual
+  script:
+    - export GRAFANA_INSTANCE={{ name }}
+    - python python/run.py recoverDashboards()
+
+recover-unifiedalerting:{{ name }}:
+  extends: .recover-unifiedalerting
+  stage: gf-recovery
+  when: manual
+  script:
+    - export GRAFANA_INSTANCE={{ name }}
+    - python python/run.py recoverOther()

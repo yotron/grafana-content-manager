@@ -1,0 +1,4 @@
+.gitlab-update-pipelines:
+  image: python:alpine
+  stage: gitlab-update-pipelines
+  extends: .git_extend

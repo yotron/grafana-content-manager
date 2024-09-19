@@ -1,0 +1,15 @@
+.recover-dashboards:
+  image: python:alpine
+  stage: gf-recovery
+  before_script:
+    - env
+    - pip install -r requirements.txt
+    - python python/run.py syncPipelines
+
+
+.recover-unifiedalerting:
+  image: python:alpine
+  stage: gf-recovery
+  before_script:
+    - env
+    - pip install -r requirements.txt

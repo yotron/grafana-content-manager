@@ -1,0 +1,12 @@
+sync-gf-dashboards-to-git:
+  stage: gf-sync-dashboard
+  extends: .sync-dashboards
+  script:
+    - python python/run.py syncDashboards
+
+sync-gf-ualert-to-git:
+  stage: gf-sync-ua-dev
+  extends: .sync-ualerting
+  when: on_success
+  script:
+    - python python/run.py syncOther

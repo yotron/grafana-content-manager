@@ -1,0 +1,11 @@
+/.idea/
+/dashboardimport_sicherung/
+/errors.log
+/dbdev/
+/unifiedalerting/
+/venv/
+/__pycache__/
+/deprecated/
+/alerting/
+/dashboards/
+/dashboardimport/

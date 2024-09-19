@@ -1,0 +1,4 @@
+.git_extend:
+  before_script:
+    - apk add git
+    - pip install -r requirements.txt

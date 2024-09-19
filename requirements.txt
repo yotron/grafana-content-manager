@@ -1,0 +1,8 @@
+#pip install -r requirements.txt
+#pip install --upgrade pip
+requests
+python-slugify
+glob2
+pyyaml
+Jinja2
+GitPython
