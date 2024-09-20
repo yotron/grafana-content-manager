@@ -22,6 +22,8 @@ def syncDashboards():
     syncDb.removeDeletedDashboards()
     funcs.createCommitMsgEnvVar(syncDb.commits)
     print("commitMsg: " + os.environ['COMMIT_MSG' ])
+    gitlab = gitlabRequestsClass()
+    gitlab.gitCommit(os.environ['COMMIT_MSG' ])
 
 def recoverDashboards():
     prepare()
@@ -36,6 +38,9 @@ def syncOther():
     syncOther.updateGrafanaUnifiedAlerts()
     funcs.createCommitMsgEnvVar(syncOther.commits)
     print("commitMsg: " + os.environ['COMMIT_MSG' ])
+    gitlab = gitlabRequestsClass()
+    gitlab.gitCommit(os.environ['COMMIT_MSG' ])
+
 
 def recoverOther():
     prepare()
@@ -51,11 +56,7 @@ def updatePipelines():
     pipelines = pipelinesClass(gitlab)
     pipelines.createPipelines()
     gitlab.getPipelineSchedules()
-    gitlab.gitCommit()
-
-def commitChanges():
-    gitlab = gitlabRequestsClass()
-    gitlab.gitCommit()
+    gitlab.gitCommit("GitLab Pipelines Update")
 
 if __name__ == "__main__":
     args = sys.argv

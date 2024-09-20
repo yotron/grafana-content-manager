@@ -13,7 +13,6 @@ class gitlabRequests:
   def __init__(self):
     # Environment variabels
     self.baseUrl = os.environ['GRAFANA_URL']
-    self.apiKey = os.environ['GRAFANA_APIKEY']
     self.gitLabUrl = os.environ['CI_API_V4_URL'] # https://gitlab.apps.k8s.local/api/v4
     self.projectUrl = os.environ['CI_REPOSITORY_URL'] # https://gitlab-ci-token:[MASKED]@gitlab.apps.k8s.local/yotron/grafana-backup.git
     self.projectId = str(os.environ['CI_PROJECT_ID']) # 2
@@ -35,9 +34,7 @@ class gitlabRequests:
     domain = parsed.netloc.split("@")[-1]
     domain = f"{os.environ['CI_JOB_NAME']}:{os.environ['GITLAB_JOB_TOKEN']}@{domain}"
     unparsed = (parsed[0], domain, parsed[2], parsed[3], parsed[4], parsed[5])
-    for i in self.repo.remotes:
-      if i.name == 'origin': self.repo.delete_remote(self.repo.remotes['origin'])
-    self.repo.create_remote('origin', urlunparse(unparsed))
+    self.repo.remotes['origin'].set_url(urlunparse(unparsed))
     self.verify = True
 
 
@@ -68,10 +65,10 @@ class gitlabRequests:
     r = requests.delete(self.gitLabUrl + "/projects/" + self.projectId + "/pipeline_schedules/" + scheduleId + "/variables/" + key, params=self.params, headers=self.baseHeader, verify=self.verify)
     return self.handleRequestRaw(r)
 
-  def gitCommit(self):
+  def gitCommit(self, msg):
       self.repo.git.add(all=True)
       try:
-        self.repo.git.commit('-m', "Dashboards import runs")
+        self.repo.git.commit('-m', msg)
         self.repo.remotes.origin.push(refspec=self.branch)
       except GitCommandError as gitError:
         print(traceback.format_exc())
