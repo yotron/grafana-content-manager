@@ -4,8 +4,7 @@
 /dbdev/
 /unifiedalerting/
 /venv/
-/__pycache__/
+/python/__pycache__/
 /deprecated/
-/alerting/
-/dashboards/
 /dashboardimport/
+/.env

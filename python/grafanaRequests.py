@@ -2,23 +2,28 @@ import sys
 
 import requests
 import os
-import json
 
 class grafanaRequests:
-  def __init__(self):
-    self.baseUrl = os.environ['GRAFANA_URL']
-    self.apiKey = os.environ['GRAFANA_APIKEY']
+  def __init__(self, instSetting):
+    self.baseUrl = instSetting["apiUrl"]
+    self.apiKey = os.getenv(instSetting["apiKeyEnvVariable"])
     self.baseHeader = {
       "Authorization": "Bearer " + self.apiKey,
       "Content-Type": "application/json"
     }
     self.verify = True
 
-  def handleRequest(selfs, r):
+  def handleRequest(self, r):
+    if r.status_code >= 400:
+      print("Request failed, StatusCode: {0}, text: {1}".format(str(r.status_code), r.text))
+      sys.exit(4)
+    return r.json()
+
+  def handleRequestNoReturn(self, r):
     if r.status_code >= 400:
       print("Could not request Grafana dashboards, Request failed, StatusCode: " + str(r.status_code))
       sys.exit(4)
-    return r.json()
+    return
 
   def getGrafanaFolder(self) -> list:
     r = requests.get(self.baseUrl + "/api/folders/", headers=self.baseHeader, verify=self.verify)
@@ -37,6 +42,10 @@ class grafanaRequests:
     r = requests.post(self.baseUrl + "/api/folders/", json = json, headers=self.baseHeader, verify=self.verify)
     return self.handleRequest(r)
 
+  def deleteGrafanaFolder(self, uid):
+    r = requests.delete(self.baseUrl + "/api/folders/" + uid, headers=self.baseHeader, verify=self.verify)
+    return self.handleRequestNoReturn(r)
+
   def createGrafanaDashboard(self, dict):
     r = requests.post(self.baseUrl + "/api/dashboards/db", json=dict, headers=self.headerXDisProv(), verify=self.verify)
     return self.handleRequest(r)
@@ -44,6 +53,22 @@ class grafanaRequests:
   def createGrafanaDashboardFromFile(self, filePath):
     f=open(filePath,'rb')
     r = requests.post(self.baseUrl + "/api/dashboards/db", data=f.read(), headers=self.headerXDisProv(), verify=self.verify)
+    return self.handleRequest(r)
+
+  def deleteGrafanaDashboard(self, uuid):
+    r = requests.delete(self.baseUrl + "/api/dashboards/uid/" + uuid, headers=self.baseHeader, verify=self.verify)
+    return self.handleRequest(r)
+
+  def listGrafanaDashboards(self):
+    r = requests.get(self.baseUrl + "/api/search/", headers=self.baseHeader, verify=self.verify)
+    return self.handleRequest(r)
+
+  def getGrafanaDashboardsAmount(self):
+    dbs = self.listGrafanaDashboards()
+    return self.filterItemsInDict(dbs, "type", "dash-db").__len__()
+
+  def getGrafanaDashboard(self, uuid):
+    r = requests.get(self.baseUrl + "/api/dashboards/uid/" + uuid, headers=self.baseHeader, verify=self.verify)
     return self.handleRequest(r)
 
   def createGrafanaAlertFromFile(self, filePath):
@@ -60,23 +85,16 @@ class grafanaRequests:
 
   def deleteGrafanaAlert(self, uuid):
     r = requests.delete(self.baseUrl + "/api/v1/provisioning/alert-rules/" + uuid, headers=self.baseHeader, verify=self.verify)
-    return self.handleRequest(r)
-
-  def listGrafanaDashboards(self):
-    r = requests.get(self.baseUrl + "/api/search/", headers=self.baseHeader, verify=self.verify)
-    return self.handleRequest(r)
-
-  def getGrafanaDashboardsAmount(self):
-    dbs = self.listGrafanaDashboards()
-    return self.filterItemsInDict(dbs, "type", "dash-db").__len__()
-
-  def getGrafanaDashboard(self, uuid):
-    r = requests.get(self.baseUrl + "/api/dashboards/uid/" + uuid, headers=self.baseHeader, verify=self.verify)
-    return self.handleRequest(r)
+    return self.handleRequestNoReturn(r)
 
   def getAlerts(self) -> list:
     r = requests.get(self.baseUrl + "/api/v1/provisioning/alert-rules/", headers=self.baseHeader, verify=self.verify)
     return self.handleRequest(r)
+
+  def getAlertsFolders(self):
+    alerts = self.getAlerts()
+    folderUids = [d['folderUID'] for d in alerts if 'folderUID' in d]
+    return folderUids
 
   def getGrafanaAlertsAmount(self):
     return self.getAlerts().__len__()
@@ -95,9 +113,12 @@ class grafanaRequests:
     r = requests.get(self.baseUrl + "/api/v1/provisioning/policies/", headers=self.baseHeader, verify=self.verify)
     return self.handleRequest(r)
 
+  def deleteNotificationPolicies(self):
+    r = requests.delete(self.baseUrl + "/api/v1/provisioning/policies/", headers=self.baseHeader, verify=self.verify)
+    return self.handleRequestNoReturn(r)
+
   def getNotificationPoliciesAmount(self):
     return self.getNotificationPolicies().__len__()
-
 
   def createNotificationPolicy(self, filePath):
     f=open(filePath,'rb')
@@ -116,13 +137,21 @@ class grafanaRequests:
     r = requests.put(self.baseUrl + "/api/v1/provisioning/templates/" + uuid, data=f.read(), headers=self.headerXDisProv(), verify=self.verify)
     return self.handleRequest(r)
 
-  def createTemplateFromDict(self, dict, uuid):
-    r = requests.put(self.baseUrl + "/api/v1/provisioning/templates/" + uuid, json=dict, headers=self.headerXDisProv(), verify=self.verify)
+  def createTemplateFromDict(self, dict, name):
+    r = requests.put(self.baseUrl + "/api/v1/provisioning/templates/" + name, json=dict, headers=self.headerXDisProv(), verify=self.verify)
     return self.handleRequest(r)
 
+  def deleteTemplate(self, name):
+    r = requests.delete(self.baseUrl + "/api/v1/provisioning/templates/" + name, headers=self.baseHeader, verify=self.verify)
+    return self.handleRequestNoReturn(r)
+
   def getMuteTimings(self) -> list:
-    r = requests.get(self.baseUrl + "/api/v1/provisioning/policies/", headers=self.baseHeader, verify=self.verify)
+    r = requests.get(self.baseUrl + "/api/v1/provisioning/mute-timings/", headers=self.baseHeader, verify=self.verify)
     return self.handleRequest(r)
+
+  def deleteMuteTiming(self, name):
+    r = requests.delete(self.baseUrl + "/api/v1/provisioning/mute-timings/" + name, headers=self.baseHeader, verify=self.verify)
+    return self.handleRequestNoReturn(r)
 
   def getMuteTimingsAmount(self):
     return self.getMuteTimings().__len__()
@@ -133,7 +162,7 @@ class grafanaRequests:
     return self.handleRequest(r)
 
   def createMuteTimingFromDict(self, dict):
-    r = requests.put(self.baseUrl + "/api/v1/provisioning/mute-timings/", json=dict, headers=self.headerXDisProv(), verify=self.verify)
+    r = requests.post(self.baseUrl + "/api/v1/provisioning/mute-timings/", json=dict, headers=self.headerXDisProv(), verify=self.verify)
     return self.handleRequest(r)
 
   def getContactPoints(self) -> list:
@@ -152,6 +181,10 @@ class grafanaRequests:
     r = requests.post(self.baseUrl + "/api/v1/provisioning/contact-points/", json=dict, headers=self.headerXDisProv(), verify=self.verify)
     return self.handleRequest(r)
 
+  def deleteContactPoint(self, uid):
+    r = requests.delete(self.baseUrl + "/api/v1/provisioning/contact-points/" + uid, headers=self.baseHeader, verify=self.verify)
+    return self.handleRequestNoReturn(r)
+
   def getGrafanaDashboardResponse(self, uuid) -> requests.Response:
     r = requests.get(self.baseUrl + "/api/dashboards/uid/" + uuid, headers=self.baseHeader, verify=self.verify)
     return r
@@ -160,6 +193,11 @@ class grafanaRequests:
     dbs = self.listGrafanaDashboards()
     result = [{"uid": d["uid"], "folder": d["folderTitle"]} for d in dbs if d["type"] == "dash-db" and "folderTitle" in d]
     return result
+
+  def getGrafanaDashboardsFolderUids(self):
+    dbs = self.listGrafanaDashboards()
+    folderUids = [d["folderUid"] for d in dbs if d["type"] == "dash-db" and "folderTitle" in d]
+    return folderUids
 
   def getGrafanaDashboardMetadata(self, uuid):
     db= self.getGrafanaDashboard(uuid)
@@ -191,6 +229,11 @@ class grafanaRequests:
       }
     print("Could not request Grafana Metadata, Request failed, Response: " + grafanaDbResp.raw)
     return None
+
+  def getGrafanaFolderMetadata(self):
+    dbs = self.listGrafanaDashboards()
+    result = [{"uid": d["uid"], "title": d["title"]} for d in dbs if d["type"] == "dash-folder"]
+    return result
 
   def filterItemsInDict(self, dict, key, value):
     result = [d for d in dict if d[key] == value]

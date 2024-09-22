@@ -6,16 +6,8 @@ import sys
 import traceback
 
 import yaml
-from jinja2 import Template
-
-
-
 
 class funcs:
-    @staticmethod
-    def createCommitMsgEnvVar(commitMsg):
-        os.environ['COMMIT_MSG' ] = str.join(',', commitMsg)
-
     @staticmethod
     def handleException(excep):
         print("Error " + str(type(excep)) + " occured.")
@@ -79,7 +71,7 @@ class funcs:
     @staticmethod
     def getInstanceSetting(grafana_instance):
         settings = funcs.getSetting()
-        for setting in settings["grafanaInstances"]:
+        for setting in settings["grafana"]:
             if setting["name"] == grafana_instance:
               return setting
 

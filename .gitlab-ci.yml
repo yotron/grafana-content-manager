@@ -4,6 +4,6 @@ include:
 
 stages:
   - gitlab-update-pipelines
-  - gf-sync-dashboard
-  - gf-sync-ua-dev
+  - gf-sync
+  - gf-clean
   - gf-recovery

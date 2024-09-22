@@ -8,11 +8,11 @@ from grafanaFilesystem import grafanaFilesystem
 from funcs import funcs
 
 class syncProcesses:
-    def __init__(self, env):
-        self.graReq = grafanaRequests()
+    def __init__(self, instSetting):
+        self.graReq = grafanaRequests(instSetting)
         self.graFS = grafanaFilesystem()
         self.commits = []
-        self.folder = "dashboards/" + env
+        self.folder = "dashboards/" + instSetting["name"]
 
     def updateGrafanaDashboards(self):
         print("Update Grafana Dashboards")
@@ -38,7 +38,7 @@ class syncProcesses:
             fileSystemDbUid = fileSystemDbJson["uid"]
             if fileSystemDbVersion == None:
               print("Add new dashboard file: " + objName)
-              self.commits.append("dashboard " + objName + " created.")
+              self.commits.append("dashboard " + objName + " created")
               funcs.writeDictToFile( objPath, grafanaDbJson)
             elif fileSystemDbUid != grafanaDbUid:
                 print("Update dashboard file: " + objName + " to UID " + str(grafanaDbUid))

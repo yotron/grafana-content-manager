@@ -1,22 +1,25 @@
-import json
-import os
+import sys
+
 import glob2 as glob
 import time
 
-from slugify import slugify
 from grafanaRequests import grafanaRequests
 from grafanaFilesystem import grafanaFilesystem
 from funcs import funcs
 
 class recoverProcesses:
-    def __init__(self, env):
-        self.graReq = grafanaRequests()
+    def __init__(self, instSetting):
+        self.graReq = grafanaRequests(instSetting)
         self.graFS = grafanaFilesystem()
-        self.folder = "alerting/" + env
+        self.folder = "alerting/" + instSetting["name"]
         self.alert_rule_folder = self.folder + "/alert-rules"
 
     def recoverAlertRules(self):
         print("Recover Alert Rules")
+        amountAlerts = self.graReq.getGrafanaAlertsAmount()
+        if amountAlerts > 0:
+            print("Cannot recover AlertRules. {0} AlertRule(s) available.".format(str(amountAlerts)))
+            sys.exit(1)
         alertList = glob.glob(self.alert_rule_folder + "/*/*.json")
         for alertFile in alertList:
             print("check alert rule " + alertFile)
@@ -48,7 +51,6 @@ class recoverProcesses:
         print("Recover Notification Policies")
         self.graReq.createNotificationPolicy(self.folder + "/notification-policies.json")
 
-
     def recoverMuteTimings(self):
         print("Recover Mute Timings")
         muteTimings = funcs.getJsonFromFile(self.folder + "/mute-timings.json")
@@ -60,4 +62,5 @@ class recoverProcesses:
         templates = funcs.getJsonFromFile(self.folder + "/templates.json")
         for template in templates:
             name = template["name"]
+            template["version"] = None
             self.graReq.createTemplateFromDict(template, name)

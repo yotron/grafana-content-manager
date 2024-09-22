@@ -1,0 +1,10 @@
+grafana-sync:
+  stage: gf-sync
+  extends: .git_extend
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "manual"
+    - if: $CI_PIPELINE_SOURCE == "push"
+      when: never
+  script:
+    - python python/run.py sync

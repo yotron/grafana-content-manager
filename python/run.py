@@ -1,55 +1,62 @@
 import os
 import sys
-import traceback
 
 from syncDb import syncProcesses as syncDbClass
 from recoverDb import recoverProcesses as recDbClass
+from cleanGrafana import deleteProcesses as delDbClass
 from recoverOther import recoverProcesses as recOtherClass
 from syncOther import syncProcesses as syncOtherClass
 from gitlabRequests import gitlabRequests as gitlabRequestsClass
 from funcs import funcs
 from pipelines import pipelines as pipelinesClass
 
-def prepare():
-    instSetting = funcs.getInstanceSetting(os.getenv("GRAFANA_INSTANCE"))
-    os.environ["GRAFANA_URL"] = instSetting["apiUrl"]
-    os.environ["GRAFANA_APIKEY"] = os.environ[instSetting["apiKeyEnvVariable"]]
-
-def syncDashboards():
-    prepare()
-    syncDb = syncDbClass(os.getenv("GRAFANA_INSTANCE"))
-    syncDb.updateGrafanaDashboards()
-    syncDb.removeDeletedDashboards()
-    funcs.createCommitMsgEnvVar(syncDb.commits)
-    print("commitMsg: " + os.environ['COMMIT_MSG' ])
+def sync():
+    commitMsgList = []
+    for instSetting in funcs.getSetting()["grafana"]:
+        syncDb = syncDbClass(instSetting)
+        syncDb.updateGrafanaDashboards()
+        syncDb.removeDeletedDashboards()
+        syncOther = syncOtherClass(instSetting)
+        syncOther.updateGrafanaAlertRules()
+        syncOther.removeDeletedAlertRules()
+        syncOther.updateGrafanaUnifiedAlerts()
+        allCommits = syncDb.commits + syncOther.commits
+        if allCommits.__len__() > 0:
+           commitMsgList.append("Instance {0}: {1}".format(instSetting["name"], str.join(', ', allCommits)))
+    overAllCommitMsg = str.join(',', commitMsgList)
     gitlab = gitlabRequestsClass()
-    gitlab.gitCommit(os.environ['COMMIT_MSG' ])
+    gitlab.gitCommit(overAllCommitMsg)
 
 def recoverDashboards():
-    prepare()
-    recDb = recDbClass(os.getenv("GRAFANA_INSTANCE"))
+    recDb = recDbClass(funcs.getInstanceSetting(os.getenv("GRAFANA_INSTANCE")))
     recDb.recoverDashboards()
 
-def syncOther():
-    prepare()
-    syncOther = syncOtherClass(os.getenv("GRAFANA_INSTANCE"))
-    syncOther.updateGrafanaAlertRules()
-    syncOther.removeDeletedAlertRules()
-    syncOther.updateGrafanaUnifiedAlerts()
-    funcs.createCommitMsgEnvVar(syncOther.commits)
-    print("commitMsg: " + os.environ['COMMIT_MSG' ])
-    gitlab = gitlabRequestsClass()
-    gitlab.gitCommit(os.environ['COMMIT_MSG' ])
-
-
 def recoverOther():
-    prepare()
-    recOther = recOtherClass(os.getenv("GRAFANA_INSTANCE"))
+    recOther = recOtherClass(funcs.getInstanceSetting(os.getenv("GRAFANA_INSTANCE")))
     recOther.recoverAlertRules()
     recOther.recoverContactPoints()
     recOther.recoverNotificationPolicies()
     recOther.recoverMuteTimings()
     recOther.recoverTemplates()
+
+def cleanDashboards():
+    startEnvVar = os.getenv("DASHBOARDS")
+    if startEnvVar != "cleanup":
+        print("Will not start cleanUp process. Start variable not set properly")
+        sys.exit(0)
+    delDb = delDbClass(funcs.getInstanceSetting(os.getenv("GRAFANA_INSTANCE")))
+    delDb.cleanDashboards()
+    delDb.cleanDashboardsFolder()
+
+def cleanUnifiedAlerting():
+    startEnvVar = os.getenv("ALERTING")
+    if startEnvVar != "cleanup":
+        print("Will not start cleanUp process. Start variable not set properly")
+        sys.exit(0)
+    delDb = delDbClass(funcs.getInstanceSetting(os.getenv("GRAFANA_INSTANCE")))
+    delDb.cleanAlertRules()
+    delDb.cleanOther()
+    delDb.cleanAlertsFolder()
 
 def updatePipelines():
     gitlab = gitlabRequestsClass()

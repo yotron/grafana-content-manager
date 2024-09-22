@@ -1,15 +1,31 @@
-recover-dashboards:{{ name }}:
-  extends: .recover-dashboards
+{{ name }}:recover-dashboards:
+  extends: .git_extend
   stage: gf-recovery
   when: manual
   script:
     - export GRAFANA_INSTANCE={{ name }}
-    - python python/run.py recoverDashboards()
+    - python python/run.py recoverDashboards
 
-recover-unifiedalerting:{{ name }}:
-  extends: .recover-unifiedalerting
+{{ name }}:recover-alerting:
+  extends: .git_extend
   stage: gf-recovery
   when: manual
   script:
     - export GRAFANA_INSTANCE={{ name }}
-    - python python/run.py recoverOther()
+    - python python/run.py recoverOther
+
+{{ name }}:clean-dashboards:
+  extends: .git_extend
+  stage: gf-clean
+  when: manual
+  script:
+    - export GRAFANA_INSTANCE={{ name }}
+    - python python/run.py cleanDashboards
+
+{{ name }}:clean-alerting:
+  extends: .git_extend
+  stage: gf-clean
+  when: manual
+  script:
+    - export GRAFANA_INSTANCE={{ name }}
+    - python python/run.py cleanUnifiedAlerting

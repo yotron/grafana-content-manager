@@ -6,10 +6,10 @@ from grafanaFilesystem import grafanaFilesystem
 from funcs import funcs
 
 class syncProcesses:
-    def __init__(self, env):
-        self.graReq = grafanaRequests()
+    def __init__(self, instSetting):
+        self.graReq = grafanaRequests(instSetting)
         self.graFS = grafanaFilesystem()
-        self.folder = "alerting/" + env
+        self.folder = "alerting/" + instSetting["name"]
         self.alert_rule_folder = self.folder + "/alert-rules"
         self.commits = []
 
@@ -85,3 +85,4 @@ class syncProcesses:
         templates = self.graReq.getTemplates()
         templates = sorted(templates, key=lambda d: d['name'])
         funcs.writeDictToFile(self.folder + "/templates.json", templates)
+        self.commits.append("Unified Alerting syncronised")

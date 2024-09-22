@@ -1,5 +1,0 @@
-gitlab-update-pipelines:
-  extends: .gitlab-update-pipelines
-  when: manual
-  script:
-    - python python/run.py updatePipelines

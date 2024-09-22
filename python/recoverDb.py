@@ -1,20 +1,24 @@
-import json
 import os
+import sys
+
 import glob2 as glob
 import time
 
-from slugify import slugify
 from grafanaRequests import grafanaRequests
 from grafanaFilesystem import grafanaFilesystem
 from funcs import funcs
 
 class recoverProcesses:
-    def __init__(self, env):
-        self.graReq = grafanaRequests()
+    def __init__(self, instSetting):
+        self.graReq = grafanaRequests(instSetting)
         self.graFS = grafanaFilesystem()
-        self.folder = "dashboards/" + env
+        self.folder = "dashboards/" + instSetting["name"]
 
     def recoverDashboards(self):
+        amountDB = self.graReq.getGrafanaDashboardsAmount()
+        if amountDB > 0:
+            print("Cannot recover Dashboards. {0} Dashboard(s) available.".format(str(amountDB)))
+            sys.exit(1)
         folderList = glob.glob(self.folder + "/*/")
         if folderList.__len__() == 0:
             print("Nothing to recover found!")

@@ -1,14 +1,14 @@
-gitlab:
+git:
   branch: master
-grafanaInstances:
-  - name: yotron-test
+grafana:
+  - name: yotron-grafana-dev
     apiUrl: https://grafana.apps.k8s.local
-    apiKeyEnvVariable: GRAFANA_APIKEY
-    gitlabSyncSchedule:
-      cron: "*/5 * * * *"
-      cron_timezone: Europe/Berlin
-      active: true
-      variables:
-        test2: test2
-        test1: test1
-
+    apiKeyEnvVariable: GRAFANA_APIKEY_1
+  - name: yotron-grafana-prod
+    apiUrl: https://grafana-2.apps.k8s.local
+    apiKeyEnvVariable: GRAFANA_APIKEY_2
+gitlab:
+  schedule:
+    cron: "*/5 * * * *"
+    cron_timezone: Europe/Berlin
+    active: true

@@ -1,30 +1,26 @@
 import sys
 import traceback
-from wsgiref.util import request_uri
 from urllib.parse import urlparse, urlunparse
 import requests
 import os
-import urllib.request
-import urllib.parse
 from git import Repo, GitCommandError
 from funcs import funcs
 
 class gitlabRequests:
   def __init__(self):
     # Environment variabels
-    self.baseUrl = os.environ['GRAFANA_URL']
     self.gitLabUrl = os.environ['CI_API_V4_URL'] # https://gitlab.apps.k8s.local/api/v4
     self.projectUrl = os.environ['CI_REPOSITORY_URL'] # https://gitlab-ci-token:[MASKED]@gitlab.apps.k8s.local/yotron/grafana-backup.git
     self.projectId = str(os.environ['CI_PROJECT_ID']) # 2
     self.repositoryUrl = os.environ['CI_PROJECT_URL'] # https://gitlab.apps.k8s.local/yotron/grafana-backup
 
     self.baseHeader = {
-      "PRIVATE-TOKEN": os.environ['GITLAB_JOB_TOKEN'],
+      "PRIVATE-TOKEN": os.environ['GIT_TOKEN'],
       "Content-Type": "application/json"
     }
 
     setting = funcs.getSetting()
-    self.branch = setting["gitlab"]["branch"]
+    self.branch = setting["git"]["branch"]
     self.repo = Repo(".")
     self.repo.git.checkout(self.branch)
     self.params = {"ref": self.branch}
@@ -32,7 +28,7 @@ class gitlabRequests:
     self.repo.config_writer().set_value("user", "email", os.environ['GITLAB_USER_EMAIL']).release()
     parsed = urlparse(os.environ['CI_REPOSITORY_URL'])
     domain = parsed.netloc.split("@")[-1]
-    domain = f"{os.environ['CI_JOB_NAME']}:{os.environ['GITLAB_JOB_TOKEN']}@{domain}"
+    domain = f"{os.environ['CI_JOB_NAME']}:{os.environ['GIT_TOKEN']}@{domain}"
     unparsed = (parsed[0], domain, parsed[2], parsed[3], parsed[4], parsed[5])
     self.repo.remotes['origin'].set_url(urlunparse(unparsed))
     self.verify = True
@@ -67,7 +63,12 @@ class gitlabRequests:
 
   def gitCommit(self, msg):
       self.repo.git.add(all=True)
+      diff = self.repo.index.diff(self.repo.head.commit)
+      if diff.__len__() == 0:
+        print("Nothing to commit!")
+        return
       try:
+        print("commitMsg:  {0}".format(msg))
         self.repo.git.commit('-m', msg)
         self.repo.remotes.origin.push(refspec=self.branch)
       except GitCommandError as gitError:

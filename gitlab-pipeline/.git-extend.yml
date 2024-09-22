@@ -1,4 +1,5 @@
 .git_extend:
+  image: python:alpine
   before_script:
     - apk add git
     - pip install -r requirements.txt
