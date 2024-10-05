@@ -4,11 +4,15 @@ grafana:
   - name: yotron-grafana-dev
     apiUrl: https://grafana.apps.k8s.local
     apiKeyEnvVariable: GRAFANA_APIKEY_1
+    allowRecoveryTo:
+      - yotron-grafana-prod
   - name: yotron-grafana-prod
     apiUrl: https://grafana-2.apps.k8s.local
     apiKeyEnvVariable: GRAFANA_APIKEY_2
 gitlab:
   schedule:
+    active: false
     cron: "*/5 * * * *"
     cron_timezone: Europe/Berlin
-    active: true
+
+

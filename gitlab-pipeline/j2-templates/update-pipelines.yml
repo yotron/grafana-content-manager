@@ -1,0 +1,9 @@
+{{ source }}:to:{{ target }}:
+  extends: .git_extend
+  stage: gf-migrate
+  when: manual
+  variables:
+    GRAFANA_INSTANCE: "{{ target }}"
+    GRAFANA_SOURCE_INSTANCE: "{{ source }}"
+  script:
+    - python python/run.py updateGrafanaInstance

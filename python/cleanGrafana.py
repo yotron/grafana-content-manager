@@ -8,6 +8,16 @@ class deleteProcesses:
         self.commits = []
         self.folder = "dashboards/" + instSetting["name"]
 
+    def cleanDataSources(self):
+        print("Delete all Grafana DataSources")
+
+        dsMetadata = self.graReq.getGrafanaDataSourcesMetadata()
+        for grafanaDsMetadataListEntry in dsMetadata:
+            grafanaDsUid = grafanaDsMetadataListEntry['uid']
+            grafanaDsName = grafanaDsMetadataListEntry['name']
+            self.graReq.deleteGrafanaDataSourceByUid(grafanaDsUid)
+            print("DashSource {0} deleted".format(grafanaDsName))
+
     def cleanDashboards(self):
         print("Delete all Grafana Dashboards")
 
@@ -22,6 +32,7 @@ class deleteProcesses:
 
     def cleanFolder(self):
         print("Delete all Folder")
+
         folderMetadata = self.graReq.getGrafanaFolderMetadata()
         for folderMetadataListEntry in folderMetadata:
             grafanaFolderUid = folderMetadataListEntry['uid']
@@ -31,6 +42,7 @@ class deleteProcesses:
 
     def cleanDashboardsFolder(self):
         print("Delete all Folder of Dashboards")
+
         folderMetadata = self.graReq.getGrafanaFolderMetadata()
         unifiedAlertFolderUids = self.graReq.getAlertsFolders()
         for folderMetadataListEntry in folderMetadata:
@@ -44,6 +56,7 @@ class deleteProcesses:
 
     def cleanAlertsFolder(self):
         print("Delete all Folder of Unified Alerts")
+
         folderMetadata = self.graReq.getGrafanaFolderMetadata()
         dashboardFolderUids = self.graReq.getGrafanaDashboardsFolderUids()
         for folderMetadataListEntry in folderMetadata:

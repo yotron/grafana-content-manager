@@ -8,6 +8,7 @@ from funcs import funcs
 class pipelines:
     def __init__(self, git):
         self.git = git
+        self.setting = funcs.getSetting()
 
     def createPipelines(self):
         pipelinePath = "gitlab-pipeline/user-pipelines"
@@ -17,23 +18,28 @@ class pipelines:
         for userPipeline in glob.glob(pipelinePath + "/.*.yml"):
             os.remove(userPipeline)
 
-        setting = funcs.getSetting()
-        userTemplateFile = funcs.readStringFromFile(jinjaPath + "/user-pipelines.yml")
-        userTemplate = Template(userTemplateFile)
-        grafanaInstances = setting["grafana"]
-
         for gitPipelineSchedule in self.git.getPipelineSchedules():
             if gitPipelineSchedule["description"] == syncScheduleDescription:
                 self.git.deletePipelineSchedule(str(gitPipelineSchedule["id"]))
 
-        schedule = setting["gitlab"]["schedule"]
+        schedule = self.setting["gitlab"]["schedule"]
         schedule["description"] = syncScheduleDescription
         self.git.setPipelineSchedule(schedule)
 
+        userTemplateFile = funcs.readStringFromFile("{0}/{1}".format(jinjaPath, "user-pipelines.yml"))
+        userTemplate = Template(userTemplateFile)
+        updateTemplateFile = funcs.readStringFromFile("{0}/{1}".format(jinjaPath, "update-pipelines.yml"))
+        updateTemplate = Template(updateTemplateFile)
+        grafanaInstances = self.setting["grafana"]
         for grafanaInstance in grafanaInstances:
             name = grafanaInstance["name"]
-            filePath = pipelinePath + "/" + "." + name + ".yml"
+            filePath = "{0}/{1}.yml".format(pipelinePath, name)
             funcs.writeStringToFile(filePath, userTemplate.render(grafanaInstance))
+            if "allowRecoveryTo" in grafanaInstance:
+                for recTo in grafanaInstance["allowRecoveryTo"]:
+                    names ={"source": name, "target": recTo}
+                    filePath = "{0}/{1}-{2}.yml".format(pipelinePath, name, recTo)
+                    funcs.writeStringToFile(filePath, updateTemplate.render(names))
 
 
 

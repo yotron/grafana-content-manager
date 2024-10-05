@@ -12,7 +12,7 @@ class syncProcesses:
         self.graReq = grafanaRequests(instSetting)
         self.graFS = grafanaFilesystem()
         self.commits = []
-        self.folder = "dashboards/" + instSetting["name"]
+        self.folder = funcs.getDashboardFolder(instSetting["name"])
 
     def updateGrafanaDashboards(self):
         print("Update Grafana Dashboards")

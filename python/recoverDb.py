@@ -9,17 +9,19 @@ from grafanaFilesystem import grafanaFilesystem
 from funcs import funcs
 
 class recoverProcesses:
-    def __init__(self, instSetting):
-        self.graReq = grafanaRequests(instSetting)
-        self.graFS = grafanaFilesystem()
-        self.folder = "dashboards/" + instSetting["name"]
+    def __init__(self, sourceInstSetting, targetInstSetting):
+        self.graReq = grafanaRequests(targetInstSetting)
+        self.sourceFolder = funcs.getDashboardFolder(sourceInstSetting["name"])
+        self.dataSourceFolder = funcs.getDataSourceFolder(sourceInstSetting["name"])
+        self.mappings = funcs.dataSourceUidsMappings(self.graReq, self.dataSourceFolder)
+
 
     def recoverDashboards(self):
         amountDB = self.graReq.getGrafanaDashboardsAmount()
         if amountDB > 0:
             print("Cannot recover Dashboards. {0} Dashboard(s) available.".format(str(amountDB)))
             sys.exit(1)
-        folderList = glob.glob(self.folder + "/*/")
+        folderList = glob.glob(self.sourceFolder + "/*/")
         if folderList.__len__() == 0:
             print("Nothing to recover found!")
         for folderSlug in folderList:
@@ -37,13 +39,14 @@ class recoverProcesses:
                 self.graReq.createGrafanaFolder(fileFolderName)
                 time.sleep(15) # give Grafana a little bit of time to "commit"
                 grafanaFolder = self.graReq.getGrafanaFolderByName(fileFolderName)
-            grafanaFolderUid = grafanaFolder["uid"]
             for dashboardFile in glob.glob(folderSlug + "/*.json"):
                 if os.path.isfile(dashboardFile):
                     print("check file " + dashboardFile)
                     manDashboardJson = funcs.getJsonFromFile(dashboardFile)["dashboard"]
                     manDashboardJson.pop('id', None)
                     manDashboardJson.pop('uid', None)
+                    grafanaFolderUid = grafanaFolder["uid"]
+                    manDashboardJson = self.changeUids(manDashboardJson, self.mappings)
                     dashboardTmpJson = {
                         "dashboard": manDashboardJson,
                         "folderUid": grafanaFolderUid,
@@ -53,9 +56,22 @@ class recoverProcesses:
                     print(self.graReq.createGrafanaDashboard(dashboardTmpJson))
 
 
-
-
-
-
-
-
+    def changeUids(self, dict, uidMappings):
+        for panelNr, panel in enumerate(dict["panels"]):
+            if "datasource" in panel and "uid" in panel["datasource"]:
+                sourceDsUid = panel["datasource"]["uid"]
+                dict["panels"][panelNr]["datasource"]["uid"] = uidMappings[sourceDsUid]
+            if "targets" in panel:
+                for targetNr, target in enumerate(panel["targets"]):
+                    if "datasource" in target and "uid" in target["datasource"]:
+                        sourceDsUid = target["datasource"]["uid"]
+                        dict["panels"][panelNr]["targets"][targetNr]["datasource"]["uid"] = uidMappings[sourceDsUid]
+        for templatingListEntryNr, templatingListEntry in enumerate(dict["templating"]["list"]):
+            if "datasource" in templatingListEntry:
+                if "uid" in templatingListEntry["datasource"]:
+                    sourceDsUid = templatingListEntry["datasource"]["uid"]
+                    dict["templating"]["list"][templatingListEntryNr]["datasource"]["uid"]= uidMappings[sourceDsUid]
+                elif isinstance(templatingListEntry["datasource"], str):
+                    sourceDsUid = templatingListEntry["datasource"]
+                    dict["templating"]["list"][templatingListEntryNr]["datasource"] = uidMappings[sourceDsUid]
+        return dict

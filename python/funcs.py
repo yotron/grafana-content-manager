@@ -9,6 +9,18 @@ import yaml
 
 class funcs:
     @staticmethod
+    def getAlertingFolder(instName):
+        return "content/" + instName + "/alerting"
+
+    @staticmethod
+    def getDashboardFolder(instName):
+        return "content/" + instName + "/dashboards"
+
+    @staticmethod
+    def getDataSourceFolder(instName):
+        return "content/" + instName + "/datasources"
+
+    @staticmethod
     def handleException(excep):
         print("Error " + str(type(excep)) + " occured.")
         print(excep.args)     # arguments stored in .args
@@ -18,7 +30,6 @@ class funcs:
 
     @staticmethod
     def readStringFromFile(filePath):
-        print(pathlib.Path(filePath).parent.absolute())
         if os.path.isfile(filePath):
             f=open(filePath,'rb')
             return f.read().decode("utf-8")
@@ -26,7 +37,6 @@ class funcs:
 
     @staticmethod
     def getJsonFromFile(filePath):
-        print(pathlib.Path(filePath).parent.absolute())
         if os.path.isfile(filePath):
             f=open(filePath,'rb')
             return json.loads(f.read())
@@ -79,4 +89,32 @@ class funcs:
     def getGitlabSetting():
         settings = funcs.getSetting()
         return settings["gitlab"]
+
+    @staticmethod
+    def filterItemsInDict(dict, key, value):
+        result = [d for d in dict if d[key] == value]
+        return result
+
+    @staticmethod
+    def filterItemInDict(dict, key, value):
+        result = funcs.filterItemsInDict(dict, key, value)
+        if result.__len__() == 1:
+            return result[0]
+        return {}
+
+    @staticmethod
+    def dataSourceUidsMappings(graReq, dataSourceFolder):
+        targetDSJson = graReq.getGrafanaDataSourcesMetadata()
+        mappings = {}
+
+        for sourceDsFile in glob.glob(dataSourceFolder + "/*.json"):
+            sourceDs = funcs.getJsonFromFile(sourceDsFile)
+            sourceDsName = sourceDs["name"]
+            sourceDsUid = sourceDs["uid"]
+            dsTargetNames = funcs.filterItemsInDict(targetDSJson, "name", sourceDsName)
+            if dsTargetNames.__len__() != 1:
+                print("No unique datasource in target Grafana found for datasoure '{0}'".format(sourceDsName))
+                sys.exit(1)
+            mappings[sourceDsUid] = dsTargetNames[0]["uid"]
+        return mappings
 

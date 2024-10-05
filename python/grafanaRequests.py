@@ -2,6 +2,7 @@ import sys
 
 import requests
 import os
+from funcs import funcs
 
 class grafanaRequests:
   def __init__(self, instSetting):
@@ -29,11 +30,11 @@ class grafanaRequests:
     r = requests.get(self.baseUrl + "/api/folders/", headers=self.baseHeader, verify=self.verify)
     return self.handleRequest(r)
 
-  def getGrafanaFolderByName(self, name):
+  def getGrafanaFolderByName(self, name) -> dict:
     jsonDict = self.getGrafanaFolder()
-    return self.filterItemInDict(jsonDict, "title", name)
+    return funcs.filterItemInDict(jsonDict, "title", name)
 
-  def getGrafanaFolderByUuid(self, uuid):
+  def getGrafanaFolderByUuid(self, uuid) -> dict:
     r = requests.get(self.baseUrl + "/api/folders/" + uuid, headers=self.baseHeader, verify=self.verify)
     return self.handleRequest(r)
 
@@ -65,7 +66,7 @@ class grafanaRequests:
 
   def getGrafanaDashboardsAmount(self):
     dbs = self.listGrafanaDashboards()
-    return self.filterItemsInDict(dbs, "type", "dash-db").__len__()
+    return funcs.filterItemsInDict(dbs, "type", "dash-db").__len__()
 
   def getGrafanaDashboard(self, uuid):
     r = requests.get(self.baseUrl + "/api/dashboards/uid/" + uuid, headers=self.baseHeader, verify=self.verify)
@@ -189,17 +190,17 @@ class grafanaRequests:
     r = requests.get(self.baseUrl + "/api/dashboards/uid/" + uuid, headers=self.baseHeader, verify=self.verify)
     return r
 
-  def getGrafanaDashboardsMetadata(self):
+  def getGrafanaDashboardsMetadata(self) -> list:
     dbs = self.listGrafanaDashboards()
     result = [{"uid": d["uid"], "folder": d["folderTitle"]} for d in dbs if d["type"] == "dash-db" and "folderTitle" in d]
     return result
 
-  def getGrafanaDashboardsFolderUids(self):
+  def getGrafanaDashboardsFolderUids(self) -> list:
     dbs = self.listGrafanaDashboards()
     folderUids = [d["folderUid"] for d in dbs if d["type"] == "dash-db" and "folderTitle" in d]
     return folderUids
 
-  def getGrafanaDashboardMetadata(self, uuid):
+  def getGrafanaDashboardMetadata(self, uuid) -> dict:
     db= self.getGrafanaDashboard(uuid)
     return {
       "uid": db["dashboard"]["uid"],
@@ -230,20 +231,40 @@ class grafanaRequests:
     print("Could not request Grafana Metadata, Request failed, Response: " + grafanaDbResp.raw)
     return None
 
-  def getGrafanaFolderMetadata(self):
+  def getGrafanaFolderMetadata(self) -> dict:
     dbs = self.listGrafanaDashboards()
     result = [{"uid": d["uid"], "title": d["title"]} for d in dbs if d["type"] == "dash-folder"]
     return result
 
-  def filterItemsInDict(self, dict, key, value):
-    result = [d for d in dict if d[key] == value]
+  def getGrafanaDataSources(self) -> dict:
+    r = requests.get(self.baseUrl + "/api/datasources", headers=self.baseHeader, verify=self.verify)
+    return self.handleRequest(r)
+
+  def getGrafanaDataSourcesMetadata(self) -> list:
+    ds = self.getGrafanaDataSources()
+    result = [{"uid": d["uid"], "name": d["name"]} for d in ds]
     return result
 
-  def filterItemInDict(self, dict, key, value):
-    result = self.filterItemsInDict(dict, key, value)
-    if result.__len__() == 1:
-      return result[0]
-    return {}
+  def getGrafanaDataSourceByUid(self, uid) -> dict:
+    r = requests.get(self.baseUrl + "/api/datasources/uid/" + uid, headers=self.baseHeader, verify=self.verify)
+    if r.status_code == 200:
+      return r.json()
+    elif r.status_code == 404:
+      return {}
+    else:
+      print("Failed to get Grafana DatSource, Request failed, StatusCode: $statusCode, message: $body")
+    return None
+
+  def createDataSourceDashboard(self, dict):
+    r = requests.post(self.baseUrl + "/api/datasources", json=dict, headers=self.headerXDisProv(), verify=self.verify)
+    return self.handleRequest(r)
+
+  def deleteGrafanaDataSourceByUid(self, uid):
+    r = requests.delete(self.baseUrl + "/api/datasources/uid/" + uid, headers=self.baseHeader, verify=self.verify)
+    return self.handleRequestNoReturn(r)
+
+  def getGrafanaDataSourceAmount(self):
+    return self.getGrafanaDataSources().__len__()
 
   def headerXDisProv(self):
     newheader = self.baseHeader

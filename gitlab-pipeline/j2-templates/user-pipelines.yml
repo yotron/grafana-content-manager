@@ -1,31 +1,53 @@
+{{ name }}:recover-datasources:
+  extends: .git_extend
+  stage: gf-recovery
+  when: manual
+  variables:
+    GRAFANA_INSTANCE: "{{ name }}"
+  script:
+    - python python/run.py recoverDataSources
+
 {{ name }}:recover-dashboards:
   extends: .git_extend
   stage: gf-recovery
   when: manual
+  variables:
+    GRAFANA_INSTANCE: "{{ name }}"
   script:
-    - export GRAFANA_INSTANCE={{ name }}
     - python python/run.py recoverDashboards
 
 {{ name }}:recover-alerting:
   extends: .git_extend
   stage: gf-recovery
   when: manual
+  variables:
+    GRAFANA_INSTANCE: "{{ name }}"
   script:
-    - export GRAFANA_INSTANCE={{ name }}
-    - python python/run.py recoverOther
+    - python python/run.py recoverUnifiedAlerting
+
+{{ name }}:clean-datasources:
+  extends: .git_extend
+  stage: gf-clean
+  when: manual
+  variables:
+    GRAFANA_INSTANCE: "{{ name }}"
+  script:
+    - python python/run.py cleanDataSources
 
 {{ name }}:clean-dashboards:
   extends: .git_extend
   stage: gf-clean
   when: manual
+  variables:
+    GRAFANA_INSTANCE: "{{ name }}"
   script:
-    - export GRAFANA_INSTANCE={{ name }}
     - python python/run.py cleanDashboards
 
 {{ name }}:clean-alerting:
   extends: .git_extend
   stage: gf-clean
   when: manual
+  variables:
+    GRAFANA_INSTANCE: "{{ name }}"
   script:
-    - export GRAFANA_INSTANCE={{ name }}
     - python python/run.py cleanUnifiedAlerting
